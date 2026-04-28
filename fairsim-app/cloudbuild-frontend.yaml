@@ -1,0 +1,43 @@
+steps:
+  # Build frontend image with backend URL injected
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'gcr.io/$PROJECT_ID/fairsim-frontend'
+      - '--build-arg'
+      - 'VITE_API_URL=${_BACKEND_URL}'
+      - './frontend'
+
+  # Push to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - 'gcr.io/$PROJECT_ID/fairsim-frontend'
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'fairsim-frontend'
+      - '--image=gcr.io/$PROJECT_ID/fairsim-frontend'
+      - '--region=asia-south1'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--timeout=60'
+      - '--concurrency=100'
+
+images:
+  - 'gcr.io/$PROJECT_ID/fairsim-frontend'
+
+# Pass backend URL as substitution variable:
+# gcloud builds submit --config cloudbuild-frontend.yaml \
+#   --substitutions _BACKEND_URL=https://fairsim-backend-xxx-uc.a.run.app
+substitutions:
+  _BACKEND_URL: 'https://fairsim-backend-placeholder.a.run.app'
+
+timeout: '1200s'
